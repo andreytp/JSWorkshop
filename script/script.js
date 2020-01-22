@@ -6,13 +6,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const goodsWrapper = document.querySelector('.goods-wrapper');
     const cart = document.querySelector('.cart');
     const category = document.querySelector('.category');
-    const cardCounter = cartBtn.querySelector('.counter');
     const wishlistCounter = wishlistBtn.querySelector('.counter');
     const cartlistCounter = cartBtn.querySelector('.counter');
     const cartWrapper = document.querySelector('.cart-wrapper');
     const basketTotal = document.querySelector('.cart-total');
     const wishlist = [];
     const goodsBasket = {};
+    const course = 0.4;
 
 
     const getCookie = (name) => {
@@ -30,43 +30,36 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             const cookieBasket = JSON.parse(cookieValue);
 
-            Object.keys(cookieBasket).forEach((item, index, array) => {
+            Object.keys(cookieBasket).forEach((item) => {
                 goodsBasket[item] = cookieBasket[item];
             });
 
             checkCount();
         } else {
-            document.cookie = `goodsBasket=${JSON.stringify(goodsBasket)}; max-age=86000`;
+            document.cookie = `goodsBasket=${JSON.stringify(goodsBasket)}; max-age=86400`;
         }
     };
 
-    const setCookie = (name, value, options = {}) => {
-        options = {
-            path: '/',
-            // при необходимости добавьте другие значения по умолчанию ...options
-        };
-
-        if (options.expires.toUTCString) {
-            options.expires = options.expires.toUTCString();
-        }
-
-        let updatedCookie = encodeURIComponent(name) + "=" + encodeURIComponent(value);
-
-        for (let optionKey in options) {
-            updatedCookie += "; " + optionKey;
-            let optionValue = options[optionKey];
-            if (optionValue !== true) {
-                updatedCookie += "=" + optionValue;
-            }
-        }
-
-        document.cookie = updatedCookie;
-    };
 
     const loading = () => {
-        goodsWrapper.innerHTML = `<div id="spinner"><div class="spinner-loading"><div><div><div></div>
-        </div><div><div></div></div><div><div></div></div><div><div></div></div></div></div></div>
-        `;
+        goodsWrapper.innerHTML = `<div id="spinner">
+                                        <div class="spinner-loading">
+                                            <div>
+                                                <div>
+                                                    <div></div>
+                                                </div>
+                                                <div>
+                                                    <div></div>
+                                                </div>
+                                                <div>
+                                                    <div></div>
+                                                </div>
+                                                <div>
+                                                    <div></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>`;
     };
 
     const createCardGoods = (id, title, price, img) => {
@@ -80,7 +73,7 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
             <div class="card-body justify-content-between">
                 <a href="#" class="card-title">${title}</a>
-                <div class="card-price">${Math.round(price * 0.4)} грн</div>
+                <div class="card-price">${(price * course).toFixed(0)} грн</div>
                 <div>
                     <button class="card-add-cart" data-goods-id="${id}">Добавить в корзину</button>
                 </div>
@@ -95,7 +88,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const renderCard = items => {
         goodsWrapper.textContent = '';
         if (!items.length) {
-            cardWrapper.textContent = '❌ Извините, мы не нашли товаров по Вашему запросу!';
+            goodsWrapper.textContent = '❌ Извините, мы не нашли товаров по Вашему запросу!';
             return;
         }
         items.forEach(element => {
@@ -110,6 +103,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const deleteButtons = cartWrapper.getElementsByClassName('goods-delete');
         for (let element of deleteButtons) {
             element.removeEventListener('click', deleteGoodFromBasket);
+        }
+        const addToWishListButtons = cartWrapper.getElementsByClassName('goods-add-wishlist');
+        for (let element of addToWishListButtons) {
+            element.removeEventListener('click', handlerGoods);
         }
     };
 
@@ -139,20 +136,22 @@ document.addEventListener('DOMContentLoaded', () => {
 					</div>
 					<div class="goods-description">
 						<h2 class="goods-title">${title}</h2>
-						<p class="goods-price">${(price * 0.4).toFixed(0)} грн</p>
+						<p class="goods-price">${(price * course).toFixed(0)} грн</p>
 
 					</div>
 					<div class="goods-price-count">
 						<div class="goods-trigger">
                             <button class="goods-add-wishlist ${wishlist.includes(id) ? 'active' : ''}"
                              data-goods-id = "${id}"></button>
-							<button class="goods-delete" data-goods-id = "${id}" :active></button>
+							<button class="goods-delete" data-goods-id = "${id}"></button>
 						</div>
 						<div class="goods-count">${goodsBasket[id]}</div>
 					</div>`;
 
         const deleteButton = card.querySelector(' .goods-delete');
         deleteButton.addEventListener('click', deleteGoodFromBasket);
+        const addToWishList = card.querySelector(' .goods-add-wishlist');
+        addToWishList.addEventListener('click', handlerGoods);
         return card;
     };
 
@@ -167,13 +166,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let totalsum = 0;
         goods.forEach(element => {
-            //console.log( element);
             cartWrapper.appendChild(createCardGoodsBasket(element.id, element.title, element.price, element.imgMin));
             totalsum += element.price * goodsBasket[element.id];
         });
         basketTotal.innerHTML = `Общая сумма: 
-                            <span>${(totalsum * 0.4).toFixed(0)}</span>
-                             - грн`;
+                            <span>${(totalsum * course).toFixed(0)}</span>
+                              грн`;
     };
 
     const getGoods = (handler, filter) => {
@@ -223,11 +221,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    const handler = (event) => {
-        console.log(event);
-
-    };
-
     const searchGoods = (event) => {
         event.preventDefault();
         const input = event.target.elements.searchGoods;
@@ -246,7 +239,6 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const storageQuery = (get) => {
-
         if (get) {
             const wishliststr = localStorage.getItem('wishlist');
             if (wishliststr) {
@@ -284,6 +276,9 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const addBasket = (goodsId) => {
+        if (!goodsId){
+            return;
+        }
         if (!goodsBasket[goodsId]) {
             goodsBasket[goodsId] = 0;
         }
@@ -296,12 +291,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const handlerGoods = event => {
         const target = event.target;
 
-        if (target.classList.contains('card-add-wishlist')) {
+        if (target.classList.contains('card-add-wishlist') ||
+           target.classList.contains('goods-add-wishlist')) {
             toggleWishList(target.dataset.goodsId, target);
         }
 
-        if (target.classList.contains('card-add-cart')) ;
-        {
+        if (target.classList.contains('card-add-cart')) {
             addBasket(target.dataset.goodsId);
         }
     };
