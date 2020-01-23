@@ -718,6 +718,30 @@ nav {
       border: none;
     }
 
+    &-increase-count {
+           width: 23px;
+           height: 32px;
+           background-color: transparent;
+           background-image: url(../img/icons1.png);
+           background-position: -16px -1865px;
+           border-radius: 50%;
+           text-align: center;
+           line-height: 32px;
+           border: none;
+    }
+
+    &-decrease-count {
+      width: 24px;
+      height: 32px;
+      background-color: transparent;
+      background-image: url(../img/icons1.png);
+      background-position: -37px -1865px;
+      border-radius: 50%;
+      text-align: center;
+      line-height: 32px;
+      border: none;
+    }
+
     &-count {
       display: flex;
       justify-content: center;

@@ -17,7 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const getCookie = (name) => {
         let matches = document.cookie.match(new RegExp(
-            "(?:^|; )" + name.replace(/([\.$?*|{}\(\)\[\]\\\/\+^])/g, '\\$1') + "=([^;]*)"
+            "(?:^|; )" + name.replace(/([.$?*|{}()\[\]\\\/+^])/g, '\\$1') + "=([^;]*)"
         ));
         return matches ? decodeURIComponent(matches[1]) : undefined;
     };
@@ -40,9 +40,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-
-    const loading = () => {
-        goodsWrapper.innerHTML = `<div id="spinner">
+    const loading = (functionName) => {
+        const spinner = `<div id="spinner">
                                         <div class="spinner-loading">
                                             <div>
                                                 <div>
@@ -60,6 +59,13 @@ document.addEventListener('DOMContentLoaded', () => {
                                             </div>
                                         </div>
                                     </div>`;
+        if (functionName === 'renderCard') {
+            goodsWrapper.innerHTML = spinner;
+        }
+
+        if (functionName === 'renderBasket') {
+            cartWrapper.innerHTML = spinner;
+        }
     };
 
     const createCardGoods = (id, title, price, img) => {
@@ -80,8 +86,6 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
         </div>`;
 
-
-        //console.log(card);
         return card;
     };
 
@@ -108,6 +112,16 @@ document.addEventListener('DOMContentLoaded', () => {
         for (let element of addToWishListButtons) {
             element.removeEventListener('click', handlerGoods);
         }
+
+        const increaseButton = cartWrapper.getElementsByClassName('goods-increase-count');
+        for (let element of increaseButton) {
+            element.removeEventListener('click', increaseGoodsCountEvent);
+        }
+
+        const decreaseButton = cartWrapper.getElementsByClassName('goods-decrease-count');
+        for (let element of decreaseButton) {
+            element.removeEventListener('click', decreaseGoodsCountEvent);
+        }
     };
 
     const actionsOpenBasket = () => {
@@ -116,14 +130,38 @@ document.addEventListener('DOMContentLoaded', () => {
         document.addEventListener('keyup', closeBasket);
     };
 
-    const deleteGoodFromBasket = event => {
-        const target = event.target;
-        const id = target.dataset.goodsId;
-        delete goodsBasket[id];
+    const refreshBasket = () => {
         actionsCloseBasket();
         cookieQuery();
         checkCount();
         actionsOpenBasket();
+    };
+
+    const deleteGoodFromBasket = event => {
+        const target = event.target;
+        const id = target.dataset.goodsId;
+        delete goodsBasket[id];
+        refreshBasket();
+    };
+
+    const increaseGoodsCountEvent = event => {
+        const target = event.target;
+        let count = goodsBasket[target.dataset.goodsId];
+        if (count) {
+            goodsBasket[target.dataset.goodsId] += 1;
+            refreshBasket();
+        }
+    };
+
+    const decreaseGoodsCountEvent = event => {
+        const target = event.target;
+        let count = goodsBasket[target.dataset.goodsId];
+        if (count) {
+            if (count > 1) {
+                goodsBasket[target.dataset.goodsId] -= 1;
+                refreshBasket();
+            }
+        }
     };
 
     const createCardGoodsBasket = (id, title, price, img) => {
@@ -141,9 +179,15 @@ document.addEventListener('DOMContentLoaded', () => {
 					</div>
 					<div class="goods-price-count">
 						<div class="goods-trigger">
-                            <button class="goods-add-wishlist ${wishlist.includes(id) ? 'active' : ''}"
-                             data-goods-id = "${id}"></button>
-							<button class="goods-delete" data-goods-id = "${id}"></button>
+						    <div>
+                                <button class="goods-add-wishlist ${wishlist.includes(id) ? 'active' : ''}"
+                                 data-goods-id = "${id}"></button>
+                                <button class="goods-delete" data-goods-id = "${id}"></button>
+							</div>
+							<div>
+                                <button class="goods-increase-count" data-goods-id = "${id}"></button>
+                                <button class="goods-decrease-count" data-goods-id = "${id}"></button>
+							</div>
 						</div>
 						<div class="goods-count">${goodsBasket[id]}</div>
 					</div>`;
@@ -152,6 +196,10 @@ document.addEventListener('DOMContentLoaded', () => {
         deleteButton.addEventListener('click', deleteGoodFromBasket);
         const addToWishList = card.querySelector(' .goods-add-wishlist');
         addToWishList.addEventListener('click', handlerGoods);
+        const increaseGoodsCount = card.querySelector(' .goods-increase-count');
+        increaseGoodsCount.addEventListener('click', increaseGoodsCountEvent);
+        const decreaseGoodsCount = card.querySelector(' .goods-decrease-count');
+        decreaseGoodsCount.addEventListener('click', decreaseGoodsCountEvent);
         return card;
     };
 
@@ -164,18 +212,18 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        let totalsum = 0;
+        let totalSum = 0;
         goods.forEach(element => {
             cartWrapper.appendChild(createCardGoodsBasket(element.id, element.title, element.price, element.imgMin));
-            totalsum += element.price * goodsBasket[element.id];
+            totalSum += element.price * goodsBasket[element.id];
         });
         basketTotal.innerHTML = `Общая сумма: 
-                            <span>${(totalsum * course).toFixed(0)}</span>
+                            <span>${(totalSum * course).toFixed(0)}</span>
                               грн`;
     };
 
     const getGoods = (handler, filter) => {
-        //loading();
+        loading(handler.name);
         fetch('db/db.json')
             .then(response => response.json())
             .then(filter)
@@ -194,10 +242,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
             getGoods(renderCard, goods => {
-                const newGoods = goods.filter(item => {
-                    return item.category.includes(category);
-                });
-                return newGoods;
+                return goods.filter(item => item.category.includes(category));
             });
         }
     };
@@ -240,10 +285,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const storageQuery = (get) => {
         if (get) {
-            const wishliststr = localStorage.getItem('wishlist');
-            if (wishliststr) {
-                const wishlistStorage = JSON.parse(wishliststr);
-                wishlistStorage.forEach(id => wishlist.push(id));
+            const wishListStr = localStorage.getItem('wishlist');
+            if (wishListStr) {
+                wishlist.push(...JSON.parse(wishListStr));
+                // const wishlistStorage = JSON.parse(wishliststr);
+                // wishlistStorage.forEach(id => wishlist.push(id));
             }
         } else {
             localStorage.setItem('wishlist', JSON.stringify(wishlist));
@@ -276,7 +322,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const addBasket = (goodsId) => {
-        if (!goodsId){
+        if (!goodsId) {
             return;
         }
         if (!goodsBasket[goodsId]) {
@@ -292,7 +338,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const target = event.target;
 
         if (target.classList.contains('card-add-wishlist') ||
-           target.classList.contains('goods-add-wishlist')) {
+            target.classList.contains('goods-add-wishlist')) {
             toggleWishList(target.dataset.goodsId, target);
         }
 
