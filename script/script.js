@@ -1,3 +1,4 @@
+"use strict";
 document.addEventListener('DOMContentLoaded', () => {
     const search = document.querySelector('.search');
     const cartBtn = document.getElementById('cart');
